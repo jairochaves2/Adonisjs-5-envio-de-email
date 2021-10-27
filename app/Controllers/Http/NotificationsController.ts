@@ -1,37 +1,44 @@
+import Mail from '@ioc:Adonis/Addons/Mail'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Env from '@ioc:Adonis/Core/Env'
 
 enum States {
-  CRIADO = 'criado',
   ENVIADO = 'enviado',
   EXTRAVIADO = 'extraviado',
   EM_TRANSITO = 'em_transito',
   ENTREGUE = 'entregue',
 }
 export default class NotificationsController {
-  public async sendNotification({ params }: HttpContextContract) {
+  public async sendNotification({ params, response }: HttpContextContract) {
     const { email, status } = params
-    let message: string
+    let messageUser: string
     switch (status) {
-      case States.CRIADO:
-        message = 'Obrigado pela compra'
-        break
       case States.ENVIADO:
-        message = 'O Seu produto acada de ser enviado, logo estará em suas mãos'
+        messageUser = 'O Seu produto acada de ser enviado, logo estará em suas mãos'
         break
       case States.EXTRAVIADO:
-        message =
+        messageUser =
           'Infelizmente o seu produto foi extraviado, entre em contato com o vendedor para mais informações'
         break
       case States.EM_TRANSITO:
-        message = 'Seu produto está em trânsito, e logo estará em suas mãos'
+        messageUser = 'Seu produto está em trânsito, e logo estará em suas mãos'
         break
       case States.ENTREGUE:
-        message = 'Seu produto foi entregue'
+        messageUser = 'Seu produto foi entregue'
         break
       default:
-        message = ''
+        messageUser = ''
     }
-    if (message) {
+    if (messageUser) {
+      await Mail.send((message) => {
+        message
+          .subject('Atualização da sua encomenda')
+          .from(Env.get('EMAIL'))
+          .to(email)
+          .htmlView('emails/update_status', { status, message: messageUser })
+      })
+    } else {
+      return response.badRequest()
     }
   }
 }
